@@ -15,7 +15,8 @@ local emotes = {
     {id = 132950274861655, name = "Worm Dance"},
     {id = 93738573538058, name = "Push Up"},
     {id = 92237689732858, name = "Stomp"},
-    {id = 121217589485629, name = "Toxic laugh"}
+    {id = 121217589485629, name = "Toxic laugh"},
+    {id = 85488100591241, name = "Gangam style"}
 }
 
 local shortcuts = {}
