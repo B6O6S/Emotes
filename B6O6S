@@ -23,7 +23,7 @@ local Players = game:GetService("Players")
 local player = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 
---=== DRAGGABLE FUNCTION ===--
+--=== HELPER: Draggable Function ===--
 local function makeDraggable(gui)
     local dragging, dragInput, dragStart, startPos
 
@@ -82,7 +82,7 @@ toggleBtn.Size = UDim2.new(0, 30, 0, 30)
 toggleBtn.Position = UDim2.new(1, -35, 0, 5)
 toggleBtn.Parent = mainFrame
 
---=== SCROLLING FRAME FOR EMOTES ===--
+--=== SCROLLING FRAME ===--
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1, -10, 1, -40)
 scrollFrame.Position = UDim2.new(0, 5, 0, 35)
@@ -97,17 +97,9 @@ listLayout.SortOrder = Enum.SortOrder.LayoutOrder
 listLayout.Padding = UDim.new(0, 5)
 
 --=== SHORTCUTS HOLDER ===--
-local shortcutHolder = Instance.new("Frame")
-shortcutHolder.Size = UDim2.new(1, 0, 0, 60)
-shortcutHolder.Position = UDim2.new(0, 0, 1, -60)
-shortcutHolder.BackgroundTransparency = 1
-shortcutHolder.Parent = screenGui
-
-local shortcutLayout = Instance.new("UIListLayout")
-shortcutLayout.FillDirection = Enum.FillDirection.Horizontal
-shortcutLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-shortcutLayout.Padding = UDim.new(0, 5)
-shortcutLayout.Parent = shortcutHolder
+local shortcutFolder = Instance.new("Folder")
+shortcutFolder.Name = "Shortcuts"
+shortcutFolder.Parent = screenGui
 
 --=== FUNCTION: Play Emote ===--
 local function playEmote(id)
@@ -120,22 +112,19 @@ end
 
 --=== FUNCTION: Create Shortcut ===--
 local function createShortcut(emote)
-    -- Remove if exists
-    for _, child in ipairs(shortcutHolder:GetChildren()) do
-        if child:IsA("TextButton") and child.Name == emote.name then
-            child:Destroy()
-            return
-        end
+    if shortcutFolder:FindFirstChild(emote.name) then
+        shortcutFolder[emote.name]:Destroy()
+        return
     end
 
     local btn = Instance.new("TextButton")
     btn.Name = emote.name
-    btn.Size = UDim2.new(0, 50, 0, 50)
+    btn.Text = emote.name
+    btn.Size = UDim2.new(0, 100, 0, 30)
+    btn.Position = UDim2.new(0.5, -50, 0, 50)
     btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     btn.TextColor3 = Color3.new(1, 1, 1)
-    btn.TextScaled = true
-    btn.Text = string.sub(emote.name, 1, 4) -- shorten name
-    btn.Parent = shortcutHolder
+    btn.Parent = shortcutFolder
     makeDraggable(btn)
 
     btn.MouseButton1Click:Connect(function()
@@ -143,7 +132,7 @@ local function createShortcut(emote)
     end)
 end
 
---=== POPULATE MAIN MENU ===--
+--=== POPULATE MAIN GUI ===--
 for _, emote in ipairs(emotes) do
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, -5, 0, 50)
@@ -190,7 +179,7 @@ for _, emote in ipairs(emotes) do
     end)
 end
 
--- Update scroll size dynamically
+-- Update scroll size
 listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
 end)
