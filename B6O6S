@@ -21,7 +21,8 @@ local emotes = {
     {id = 71210290786350, name = "Rollie"},
     {id = 120302905807132, name = "Sturdy"},
     {id = 126045725877316, name = "Rambunctious"},
-    {id = 90490270360367, name = "Side shuffle"}
+    {id = 90490270360367, name = "Side shuffle"},
+    {id = 102699471013529, name = "Signature shuffle"}
 }
 
 local shortcuts = {}
