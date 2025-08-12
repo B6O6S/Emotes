@@ -1,12 +1,8 @@
--- Emote GUI with Thumbnails, Shortcuts, Draggable & Scrollable Menu
--- Place in StarterPlayer -> StarterPlayerScripts as a LocalScript
+-- LocalScript in StarterPlayerScripts
 
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local UIS = game:GetService("UserInputService")
-
+--=== CONFIG ===--
 local emotes = {
-    {id = 113855231967763, name = "Take The L"},
+    {id = 113855231967763, name = "Take the L"},
     {id = 82250025202656, name = "Can I Join?"},
     {id = 101397505086633, name = "Lonely Lonely"},
     {id = 91811231498287, name = "Rampage"},
@@ -15,45 +11,24 @@ local emotes = {
     {id = 132950274861655, name = "Worm Dance"},
     {id = 93738573538058, name = "Push Up"},
     {id = 92237689732858, name = "Stomp"},
-    {id = 121217589485629, name = "Toxic laugh"},
-    {id = 85488100591241, name = "Gangam style"},
-    {id = 99326825873329, name = "Tidy"}
+    {id = 79414723643986, name = "Toxic Laugh"},
+    {id = 85488100591241, name = "Gangam Style"},
+    {id = 99326825873329, name = "Tidy"},
+    {id = 71210290786350, name = "Rollie"},
+    {id = 122687759897103, name = "Sturdy"}
 }
 
-local shortcuts = {}
+--=== SERVICES ===--
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local UIS = game:GetService("UserInputService")
 
-local function playEmoteById(assetId)
-    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
-    if not humanoid then return end
-
-    local success = pcall(function()
-        humanoid:PlayEmoteAndGetAnimTrackById(assetId)
-    end)
-
-    if not success then
-        local desc = humanoid:FindFirstChildOfClass("HumanoidDescription")
-        if desc then
-            desc:AddEmote("Custom", assetId)
-            humanoid:PlayEmoteAndGetAnimTrackById(assetId)
-        else
-            warn("HumanoidDescription not found.")
-        end
-    end
-end
-
+--=== DRAGGABLE FUNCTION ===--
 local function makeDraggable(gui)
     local dragging, dragInput, dragStart, startPos
 
-    local function update(input)
-        local delta = input.Position - dragStart
-        gui.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
-        )
-    end
-
     gui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = gui.Position
@@ -67,120 +42,160 @@ local function makeDraggable(gui)
     end)
 
     gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
             dragInput = input
         end
     end)
 
     UIS.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
-            update(input)
+            local delta = input.Position - dragStart
+            gui.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
         end
     end)
 end
 
+--=== MAIN GUI ===--
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "EmoteMenu"
 screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 300)  -- Smaller fixed size
-mainFrame.Position = UDim2.new(0.5, -160, 0.5, -150)
-mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+mainFrame.Size = UDim2.new(0, 250, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
+mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.Active = true
-mainFrame.Visible = false
 mainFrame.Parent = screenGui
 makeDraggable(mainFrame)
 
--- Scrolling frame inside mainFrame for emotes
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(0, 8)
+uiCorner.Parent = mainFrame
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Text = "X"
+toggleBtn.Size = UDim2.new(0, 30, 0, 30)
+toggleBtn.Position = UDim2.new(1, -35, 0, 5)
+toggleBtn.Parent = mainFrame
+
+--=== SCROLLING FRAME FOR EMOTES ===--
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -10, 1, -20)
-scrollFrame.Position = UDim2.new(0, 5, 0, 15)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#emotes * 55)) -- total height of all buttons
+scrollFrame.Size = UDim2.new(1, -10, 1, -40)
+scrollFrame.Position = UDim2.new(0, 5, 0, 35)
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
 scrollFrame.ScrollBarThickness = 6
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.Parent = mainFrame
 
--- UIListLayout for automatic vertical layout
-local layout = Instance.new("UIListLayout")
-layout.Padding = UDim.new(0, 5)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Parent = scrollFrame
+local listLayout = Instance.new("UIListLayout")
+listLayout.Parent = scrollFrame
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Padding = UDim.new(0, 5)
 
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(0, 100, 0, 40)
-toggleBtn.Position = UDim2.new(0, 10, 0, 10)
-toggleBtn.Text = "Emotes"
-toggleBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-toggleBtn.Parent = screenGui
+--=== SHORTCUTS HOLDER ===--
+local shortcutHolder = Instance.new("Frame")
+shortcutHolder.Size = UDim2.new(1, 0, 0, 60)
+shortcutHolder.Position = UDim2.new(0, 0, 1, -60)
+shortcutHolder.BackgroundTransparency = 1
+shortcutHolder.Parent = screenGui
 
-toggleBtn.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
+local shortcutLayout = Instance.new("UIListLayout")
+shortcutLayout.FillDirection = Enum.FillDirection.Horizontal
+shortcutLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+shortcutLayout.Padding = UDim.new(0, 5)
+shortcutLayout.Parent = shortcutHolder
 
-local function toggleShortcut(emote)
-    if shortcuts[emote.id] then
-        shortcuts[emote.id]:Destroy()
-        shortcuts[emote.id] = nil
-        return
+--=== FUNCTION: Play Emote ===--
+local function playEmote(id)
+    local char = player.Character or player.CharacterAdded:Wait()
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum:PlayEmote(id)
     end
-
-    local shortcutBtn = Instance.new("TextButton")
-    shortcutBtn.Size = UDim2.new(0, 80, 0, 30)
-    shortcutBtn.Position = UDim2.new(1, -90, 0, 10 + (#shortcuts * 40))
-    shortcutBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    shortcutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    shortcutBtn.TextScaled = true
-    shortcutBtn.Text = emote.name
-    shortcutBtn.Parent = screenGui
-
-    makeDraggable(shortcutBtn)
-
-    shortcutBtn.MouseButton1Click:Connect(function()
-        playEmoteById(emote.id)
-    end)
-
-    shortcuts[emote.id] = shortcutBtn
 end
 
+--=== FUNCTION: Create Shortcut ===--
+local function createShortcut(emote)
+    -- Remove if exists
+    for _, child in ipairs(shortcutHolder:GetChildren()) do
+        if child:IsA("TextButton") and child.Name == emote.name then
+            child:Destroy()
+            return
+        end
+    end
+
+    local btn = Instance.new("TextButton")
+    btn.Name = emote.name
+    btn.Size = UDim2.new(0, 50, 0, 50)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    btn.TextColor3 = Color3.new(1, 1, 1)
+    btn.TextScaled = true
+    btn.Text = string.sub(emote.name, 1, 4) -- shorten name
+    btn.Parent = shortcutHolder
+    makeDraggable(btn)
+
+    btn.MouseButton1Click:Connect(function()
+        playEmote(emote.id)
+    end)
+end
+
+--=== POPULATE MAIN MENU ===--
 for _, emote in ipairs(emotes) do
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 50)
-    container.BackgroundTransparency = 1
-    container.Parent = scrollFrame
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(1, -5, 0, 50)
+    frame.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+    frame.Parent = scrollFrame
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 6)
+    corner.Parent = frame
 
     local thumb = Instance.new("ImageLabel")
     thumb.Size = UDim2.new(0, 50, 0, 50)
-    thumb.Position = UDim2.new(0, 0, 0, 0)
+    thumb.Image = ("rbxthumb://type=Asset&id=%d&w=420&h=420"):format(emote.id)
     thumb.BackgroundTransparency = 1
-    thumb.Image = "rbxthumb://type=Asset&id=" .. emote.id .. "&w=150&h=150"
-    thumb.Parent = container
+    thumb.Parent = frame
+
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, -60, 1, 0)
+    nameLabel.Position = UDim2.new(0, 55, 0, 0)
+    nameLabel.Text = emote.name
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.TextColor3 = Color3.new(1, 1, 1)
+    nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+    nameLabel.Parent = frame
 
     local playBtn = Instance.new("TextButton")
-    playBtn.Size = UDim2.new(0.6, -60, 1, 0)
-    playBtn.Position = UDim2.new(0, 55, 0, 0)
-    playBtn.Text = emote.name
-    playBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    playBtn.TextScaled = true
-    playBtn.Parent = container
+    playBtn.Size = UDim2.new(0, 40, 0, 40)
+    playBtn.Position = UDim2.new(1, -90, 0.5, -20)
+    playBtn.Text = "▶"
+    playBtn.Parent = frame
 
     local shortcutBtn = Instance.new("TextButton")
-    shortcutBtn.Size = UDim2.new(0.4, -5, 1, 0)
-    shortcutBtn.Position = UDim2.new(0.6, 55, 0, 0)
+    shortcutBtn.Size = UDim2.new(0, 40, 0, 40)
+    shortcutBtn.Position = UDim2.new(1, -45, 0.5, -20)
     shortcutBtn.Text = "+"
-    shortcutBtn.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    shortcutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    shortcutBtn.TextScaled = true
-    shortcutBtn.Parent = container
+    shortcutBtn.Parent = frame
 
     playBtn.MouseButton1Click:Connect(function()
-        playEmoteById(emote.id)
+        playEmote(emote.id)
     end)
 
     shortcutBtn.MouseButton1Click:Connect(function()
-        toggleShortcut(emote)
+        createShortcut(emote)
     end)
 end
+
+-- Update scroll size dynamically
+listLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, listLayout.AbsoluteContentSize.Y)
+end)
+
+--=== TOGGLE MAIN MENU ===--
+toggleBtn.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
