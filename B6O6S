@@ -20,6 +20,7 @@ local emotes = {
     {id = 99326825873329, name = "Tidy"},
     {id = 71210290786350, name = "Rollie"},
     {id = 122687759897103, name = "Sturdy"}
+    {id = 126045725877316, name = "Rambunctious"},
 }
 
 local shortcuts = {}
