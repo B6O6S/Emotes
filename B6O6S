@@ -9,7 +9,7 @@ local emotes = {
     {id = 113855231967763, name = "Take The L"},
     {id = 82250025202656, name = "Can I Join?"},
     {id = 101397505086633, name = "Lonely Lonely"},
-    {id = 91811231498287, name = "Rampage"},
+    {id = 89114994401113, name = "Rampage"},
     {id = 14353423348, name = "Wall Glitch"},
     {id = 15610015346, name = "Speed Glitch"},
     {id = 132950274861655, name = "Worm Dance"},
