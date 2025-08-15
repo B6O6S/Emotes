@@ -23,7 +23,7 @@ local emotes = {
     {id = 126045725877316, name = "Rambunctious"},
     {id = 90490270360367, name = "Side shuffle"},
     {id = 102699471013529, name = "Signature shuffle"},
-    {id = 139890185302092, name = "Siuu"}
+    {id = 139890185302092, name = "Siuu"},
     {id = 79127989560307, name = "Moon walk"}
 }
 
