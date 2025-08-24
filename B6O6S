@@ -26,7 +26,8 @@ local emotes = {
     {id = 139890185302092, name = "Siuu"},
     {id = 79127989560307, name = "Moon walk"},
     {id = 92032361108643, name = "Homero dance"},
-    {id = 113818946774721, name = "Arona Dance"}
+    {id = 113818946774721, name = "Arona Dance"},
+    {id = 95170557101676, name = "رقصة عامر"}
 }
 
 local shortcuts = {}
