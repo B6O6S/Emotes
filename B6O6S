@@ -6,7 +6,7 @@ local player = Players.LocalPlayer
 local UIS = game:GetService("UserInputService")
 
 local emotes = {
-    {id = 113855231967763, name = "Take The L"},
+    {id = 82405492529515, name = "Take The L"},
     {id = 82250025202656, name = "Can I Join?"},
     {id = 101397505086633, name = "Lonely Lonely"},
     {id = 89114994401113, name = "Rampage"},
@@ -25,7 +25,8 @@ local emotes = {
     {id = 102699471013529, name = "Signature shuffle"},
     {id = 139890185302092, name = "Siuu"},
     {id = 79127989560307, name = "Moon walk"},
-    {id = 92032361108643, name = "Homero dance"}
+    {id = 92032361108643, name = "Homero dance"},
+    {id = 113818946774721, name = "Arona Dance"}
 }
 
 local shortcuts = {}
