@@ -24,7 +24,9 @@ local emotes = {
     {id = 92032361108643, name = "Homero dance"},
     {id = 113818946774721, name = "Arona Dance"},
     {id = 95170557101676, name = "رقصة عامر"},
-    {id = 101573394483995, name = "Aura pose"}
+    {id = 101573394483995, name = "Aura pose"},
+    {id = 102969703404968, name = "Go Mufasa"},
+    {id = 125997227556930, name = "Jabba Switchway"}
 }
 
 local shortcuts = {}
