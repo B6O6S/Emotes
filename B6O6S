@@ -28,6 +28,7 @@ local emotes = {
     {id = 102969703404968, name = "Go Mufasa"},
     {id = 125997227556930, name = "Jabba Switchway"},
     {id = 93263519058082, name = "Bottoms up"}
+    {id = 118688124889191, name = "Nya san"}
 }
 
 local shortcuts = {}
