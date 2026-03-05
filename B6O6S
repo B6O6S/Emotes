@@ -27,7 +27,7 @@ local emotes = {
     {id = 101573394483995, name = "Aura pose"},
     {id = 102969703404968, name = "Go Mufasa"},
     {id = 125997227556930, name = "Jabba Switchway"},
-    {id = 97272157661329, name = "bottom up"},
+    {id = 125151359326769, name = "I see kreem"},
     {id = 118688124889191, name = "Nya san"},
     {id = 111296244825220, name = "Needy Sleepy"},
     {id = 103425984442966, name = "Take it"}
