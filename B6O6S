@@ -37,8 +37,7 @@ local emotes = {
 local shortcuts = {}
 
 local function playEmoteById(assetId)
-    local humanoid = player.Character and player.Character:FindFirstChild
-OfClass("Humanoid")
+    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
     if not humanoid then return end
 
     local success = pcall(function()
@@ -57,18 +56,24 @@ OfClass("Humanoid")
 end
 
 local function makeDraggable(gui)
-    local dragging, dragInput, dragStart, startPos
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
 
     local function update(input)
         local delta = input.Position - dragStart
         gui.Position = UDim2.new(
-            startPos.X.Scale, startPos.X.Offset + delta.X,
-            startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            startPos.X.Scale,
+            startPos.X.Offset + delta.X,
+            startPos.Y.Scale,
+            startPos.Y.Offset + delta.Y
         )
     end
 
     gui.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1 
+        or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = gui.Position
@@ -82,7 +87,8 @@ local function makeDraggable(gui)
     end)
 
     gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseMovement 
+        or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
@@ -100,24 +106,23 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = player:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 320, 0, 300)  -- Smaller fixed size
+mainFrame.Size = UDim2.new(0, 320, 0, 300)
 mainFrame.Position = UDim2.new(0.5, -160, 0.5, -150)
 mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 mainFrame.Active = true
 mainFrame.Visible = false
 mainFrame.Parent = screenGui
+
 makeDraggable(mainFrame)
 
--- Scrolling frame inside mainFrame for emotes
 local scrollFrame = Instance.new("ScrollingFrame")
 scrollFrame.Size = UDim2.new(1, -10, 1, -20)
 scrollFrame.Position = UDim2.new(0, 5, 0, 15)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#emotes * 55)) -- total height of all buttons
+scrollFrame.CanvasSize = UDim2.new(0, 0, 0, (#emotes * 55))
 scrollFrame.ScrollBarThickness = 6
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.Parent = mainFrame
 
--- UIListLayout for automatic vertical layout
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 5)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -168,7 +173,6 @@ for _, emote in ipairs(emotes) do
 
     local thumb = Instance.new("ImageLabel")
     thumb.Size = UDim2.new(0, 50, 0, 50)
-    thumb.Position = UDim2.new(0, 0, 0, 0)
     thumb.BackgroundTransparency = 1
     thumb.Image = "rbxthumb://type=Asset&id=" .. emote.id .. "&w=150&h=150"
     thumb.Parent = container
