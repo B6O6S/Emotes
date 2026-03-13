@@ -30,13 +30,15 @@ local emotes = {
     {id = 125151359326769, name = "I see kreem"},
     {id = 118688124889191, name = "Nya san"},
     {id = 111296244825220, name = "Needy Sleepy"},
-    {id = 103425984442966, name = "Take it"}
+    {id = 103425984442966, name = "Take it"},
+    {id = 88789316279851, name = "Lay on back"}
 }
 
 local shortcuts = {}
 
 local function playEmoteById(assetId)
-    local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+    local humanoid = player.Character and player.Character:FindFirstChild
+OfClass("Humanoid")
     if not humanoid then return end
 
     local success = pcall(function()
