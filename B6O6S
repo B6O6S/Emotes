@@ -29,9 +29,10 @@ local emotes = {
     {id = 125997227556930, name = "Jabba Switchway"},
     {id = 125151359326769, name = "I see kreem"},
     {id = 118688124889191, name = "Nya san"},
-    {id = 111296244825220, name = "Needy Sleepy"},
+    {id = 118341593536878, name = "hoppin"},
     {id = 103425984442966, name = "Take it"},
-    {id = 88789316279851, name = "Lay on back"}
+    {id = 88789316279851, name = "Lay on back"},
+    {id = 101532601304772, name = "Shake that thang"}
 }
 
 local shortcuts = {}
