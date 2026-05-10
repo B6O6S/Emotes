@@ -32,7 +32,8 @@ local emotes = {
     {id = 108656884253289, name = "Cat dance"},
     {id = 103425984442966, name = "Take it"},
     {id = 88789316279851, name = "Lay on back"},
-    {id = 101532601304772, name = "Shake that thang"}
+    {id = 113863828896103, name = "Shake that thang"},
+    {id = 113863828896103, name = "Blue shirt kid"}
 }
 
 local shortcuts = {}
