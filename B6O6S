@@ -29,7 +29,7 @@ local emotes = {
     {id = 125997227556930, name = "Jabba Switchway"},
     {id = 125151359326769, name = "I see kreem"},
     {id = 118688124889191, name = "Nya san"},
-    {id = 108656884253289, name = "Cat dance"},
+    {id = 98864354460411, name = "Cat dance"},
     {id = 103425984442966, name = "Take it"},
     {id = 88789316279851, name = "Lay on back"},
     {id = 113863828896103, name = "Shake that thang"},
