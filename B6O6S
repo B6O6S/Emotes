@@ -29,12 +29,14 @@ local emotes = {
     {id = 125997227556930, name = "Jabba Switchway"},
     {id = 125151359326769, name = "I see kreem"},
     {id = 118688124889191, name = "Nya san"},
-    {id = 98864354460411, name = "Cat dance"},
+    {id = 91673024802264, name = "Cat dance"},
     {id = 103425984442966, name = "Take it"},
     {id = 88789316279851, name = "Lay on back"},
     {id = 113863828896103, name = "Shake that thang"},
     {id = 93659771713494, name = "Blue shirt kid"},
-    {id = 95325218641213, name = "Psycho teddy"}
+    {id = 95325218641213, name = "Psycho teddy"},
+    {id = 111743497143417, name = "Side lean"},
+    {id = 88969192102242, name = "Wall lean"}
 }
 
 local shortcuts = {}
