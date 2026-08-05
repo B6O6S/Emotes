@@ -36,7 +36,8 @@ local emotes = {
     {id = 93659771713494, name = "Blue shirt kid"},
     {id = 95325218641213, name = "Psycho teddy"},
     {id = 111743497143417, name = "Side lean"},
-    {id = 88969192102242, name = "Wall lean"}
+    {id = 88969192102242, name = "Wall lean"},
+    {id = 115213031358991, name = "Beautiful day"}
 }
 
 local shortcuts = {}
