@@ -38,7 +38,8 @@ local emotes = {
     {id = 111743497143417, name = "Side lean"},
     {id = 88969192102242, name = "Wall lean"},
     {id = 115213031358991, name = "Beautiful day"},
-    {id = 111539333518905, name = "Split legs"}
+    {id = 111539333518905, name = "Split legs"},
+    {id = 125491951751014, name = "Hug"}
 }
 
 local shortcuts = {}
