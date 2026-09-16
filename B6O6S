@@ -8,7 +8,7 @@ local UIS = game:GetService("UserInputService")
 local emotes = {
     {id = 82405492529515, name = "Take The L"},
     {id = 82250025202656, name = "Can I Join?"},
-    {id = 101397505086633, name = "Lonely Lonely"},
+    {id = 101675537943749, name = "Fright Funk"},
     {id = 89114994401113, name = "Rampage"},
     {id = 14353423348, name = "Wall Glitch"},
     {id = 15610015346, name = "Speed Glitch"},
