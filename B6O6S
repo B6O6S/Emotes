@@ -42,7 +42,8 @@ local emotes = {
     {id = 125491951751014, name = "Hug"},
     {id = 91739079549341, name = "Gift her"},
     {id = 95148707883309, name = "Im sorry"},
-    {id = 118335095429529, name = "Head Scratch"}
+    {id = 118335095429529, name = "Head Scratch"},
+    {id = 140184938717896, name = "Fall"}
 }
 
 local shortcuts = {}
