@@ -64,7 +64,7 @@ end)
 --==================================================
 
 local emotes = {
-    {id = 82405492529515, name = "Take The L"},
+    {id = 122624487269599, name = "Take The L"},
     {id = 82250025202656, name = "Can I Join?"},
     {id = 101675537943749, name = "Fright Funk"},
     {id = 89114994401113, name = "Rampage"},
