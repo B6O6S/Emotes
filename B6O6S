@@ -23,7 +23,8 @@ local savedData = {
         displayMode = "name",
         size = 34,
         shortcutTransparency = 0,
-        rainbowOutline = true
+        rainbowOutline = true,
+        lockEmotePositions = false
     }
 }
 
@@ -37,12 +38,15 @@ pcall(function()
             end
 
             if decoded.settings then
+
                 if decoded.settings.displayMode then
-                    savedData.settings.displayMode = decoded.settings.displayMode
+                    savedData.settings.displayMode =
+                        decoded.settings.displayMode
                 end
 
                 if decoded.settings.size then
-                    savedData.settings.size = decoded.settings.size
+                    savedData.settings.size =
+                        decoded.settings.size
                 end
 
                 if decoded.settings.shortcutTransparency ~= nil then
@@ -53,6 +57,11 @@ pcall(function()
                 if decoded.settings.rainbowOutline ~= nil then
                     savedData.settings.rainbowOutline =
                         decoded.settings.rainbowOutline
+                end
+
+                if decoded.settings.lockEmotePositions ~= nil then
+                    savedData.settings.lockEmotePositions =
+                        decoded.settings.lockEmotePositions
                 end
             end
         end
@@ -112,9 +121,17 @@ local emotes = {
 local shortcuts = {}
 local containerFrames = {}
 
--- Used to stop the main GUI from moving while a slider/shortcut
--- is being dragged.
 local isMenuDraggingEnabled = true
+
+--==================================================
+-- GLOBAL SHORTCUT DRAG LOCK
+--==================================================
+-- Only ONE shortcut can be dragged at a time.
+-- This prevents another finger from taking over
+-- while a shortcut is already being dragged.
+
+local activeShortcutDrag = nil
+local activeShortcutInput = nil
 
 --==================================================
 -- TEXT STROKE
@@ -133,11 +150,14 @@ end
 
 local function playEmoteById(assetId)
     local character = player.Character
+
     if not character then
         return
     end
 
-    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local humanoid =
+        character:FindFirstChildOfClass("Humanoid")
+
     if not humanoid then
         return
     end
@@ -147,7 +167,8 @@ local function playEmoteById(assetId)
     end)
 
     if not success then
-        local desc = humanoid:FindFirstChildOfClass("HumanoidDescription")
+        local desc =
+            humanoid:FindFirstChildOfClass("HumanoidDescription")
 
         if desc then
             pcall(function()
@@ -165,12 +186,14 @@ end
 local function saveSettings()
     pcall(function()
         if writefile then
+
             local dataToSave = {
                 shortcuts = {},
                 settings = savedData.settings
             }
 
             for id, frame in pairs(shortcuts) do
+
                 local pos = frame.Position
 
                 dataToSave.shortcuts[tostring(id)] = {
@@ -194,12 +217,14 @@ end
 --==================================================
 
 local function makeDraggable(gui, onDragEnded)
+
     local dragging = false
     local dragInput = nil
     local dragStart = nil
     local startPos = nil
 
     gui.InputBegan:Connect(function(input)
+
         if not isMenuDraggingEnabled then
             return
         end
@@ -212,7 +237,10 @@ local function makeDraggable(gui, onDragEnded)
             startPos = gui.Position
 
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
+
+                if input.UserInputState ==
+                    Enum.UserInputState.End then
+
                     dragging = false
 
                     if onDragEnded then
@@ -224,14 +252,18 @@ local function makeDraggable(gui, onDragEnded)
     end)
 
     gui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement
-        or input.UserInputType == Enum.UserInputType.Touch then
+
+        if input.UserInputType ==
+            Enum.UserInputType.MouseMovement
+        or input.UserInputType ==
+            Enum.UserInputType.Touch then
 
             dragInput = input
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
+
         if not dragging then
             return
         end
@@ -244,7 +276,8 @@ local function makeDraggable(gui, onDragEnded)
             return
         end
 
-        local delta = input.Position - dragStart
+        local delta =
+            input.Position - dragStart
 
         gui.Position = UDim2.new(
             startPos.X.Scale,
@@ -256,25 +289,42 @@ local function makeDraggable(gui, onDragEnded)
 end
 
 --==================================================
--- MOBILE SHORTCUT DRAG
+-- MOBILE / PC SHORTCUT DRAG
 --==================================================
 
 local function makeShortcutDraggable(frame, button, emote)
+
     local dragging = false
     local moved = false
 
     local dragStart = nil
     local startPos = nil
 
-    local dragInput = nil
-
     local DRAG_THRESHOLD = 8
 
     local function beginDrag(input)
+
+        -- Position lock
+        if savedData.settings.lockEmotePositions then
+            return
+        end
+
+        -- Only mouse click or touch
         if input.UserInputType ~= Enum.UserInputType.Touch
         and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
             return
         end
+
+        -- IMPORTANT:
+        -- If ANY shortcut is already being dragged,
+        -- completely ignore this new finger/input.
+        if activeShortcutDrag ~= nil then
+            return
+        end
+
+        -- Claim the global drag lock
+        activeShortcutDrag = frame
+        activeShortcutInput = input
 
         dragging = true
         moved = false
@@ -283,12 +333,17 @@ local function makeShortcutDraggable(frame, button, emote)
         startPos = frame.Position
 
         isMenuDraggingEnabled = false
-
-        dragInput = input
     end
 
     local function updateDrag(input)
+
         if not dragging then
+            return
+        end
+
+        -- Only the original finger/input may control
+        -- the shortcut.
+        if input ~= activeShortcutInput then
             return
         end
 
@@ -296,25 +351,35 @@ local function makeShortcutDraggable(frame, button, emote)
             return
         end
 
-        local delta = input.Position - dragStart
+        local delta =
+            input.Position - dragStart
 
         if math.abs(delta.X) > DRAG_THRESHOLD
         or math.abs(delta.Y) > DRAG_THRESHOLD then
+
             moved = true
         end
 
         if moved then
+
             frame.Position = UDim2.new(
                 startPos.X.Scale,
                 startPos.X.Offset + delta.X,
+
                 startPos.Y.Scale,
                 startPos.Y.Offset + delta.Y
             )
         end
     end
 
-    local function endDrag()
+    local function endDrag(input)
+
         if not dragging then
+            return
+        end
+
+        -- Ignore another finger ending.
+        if input ~= activeShortcutInput then
             return
         end
 
@@ -322,9 +387,12 @@ local function makeShortcutDraggable(frame, button, emote)
 
         dragging = false
         moved = false
-        dragInput = nil
+
         dragStart = nil
         startPos = nil
+
+        activeShortcutInput = nil
+        activeShortcutDrag = nil
 
         isMenuDraggingEnabled = true
 
@@ -341,46 +409,82 @@ local function makeShortcutDraggable(frame, button, emote)
         beginDrag(input)
     end)
 
+    -- Track only the movement belonging to the
+    -- currently active drag.
     frame.InputChanged:Connect(function(input)
+
         if input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
+
+            if activeShortcutDrag == frame then
+                -- For touch, keep the original input.
+                if input.UserInputType ==
+                    Enum.UserInputType.Touch then
+
+                    if activeShortcutInput == nil then
+                        activeShortcutInput = input
+                    end
+                end
+            end
         end
     end)
 
     button.InputChanged:Connect(function(input)
+
         if input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseMovement then
-            dragInput = input
+
+            if activeShortcutDrag == frame then
+                -- Do not replace the active touch.
+                if input.UserInputType ==
+                    Enum.UserInputType.Touch then
+
+                    if activeShortcutInput == nil then
+                        activeShortcutInput = input
+                    end
+                end
+            end
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
+
         if not dragging then
+            return
+        end
+
+        -- Only the finger/mouse input that started
+        -- this shortcut drag is allowed.
+        if input ~= activeShortcutInput then
             return
         end
 
         if input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseMovement then
+
             updateDrag(input)
         end
     end)
 
     UserInputService.InputEnded:Connect(function(input)
+
         if input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseButton1 then
 
-            if dragging then
-                endDrag()
-            end
+            endDrag(input)
         end
     end)
 
-    -- Play the emote only when the user tapped instead of dragging.
+    -- Play emote only when it was a tap.
     button.Activated:Connect(function()
-        if not moved then
-            playEmoteById(emote.id)
+
+        -- If it was dragged, don't play.
+        if moved then
+            return
         end
+
+        -- If positions are locked, normal tapping still works.
+        playEmoteById(emote.id)
     end)
 end
 
@@ -400,7 +504,8 @@ screenGui.Parent = playerGui
 local toggleBtnFrame = Instance.new("Frame")
 toggleBtnFrame.Size = UDim2.new(0, 110, 0, 38)
 toggleBtnFrame.Position = UDim2.new(0, 20, 0, 20)
-toggleBtnFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+toggleBtnFrame.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 28)
 toggleBtnFrame.Parent = screenGui
 
 local toggleCorner = Instance.new("UICorner")
@@ -416,7 +521,8 @@ local toggleBtn = Instance.new("TextButton")
 toggleBtn.Size = UDim2.new(1, 0, 1, 0)
 toggleBtn.BackgroundTransparency = 1
 toggleBtn.Text = "Emotes"
-toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 toggleBtn.TextSize = 14
 toggleBtn.Font = Enum.Font.GothamBold
 toggleBtn.Parent = toggleBtnFrame
@@ -431,8 +537,10 @@ makeDraggable(toggleBtnFrame, nil)
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 280, 0, 430)
-mainFrame.Position = UDim2.new(0.5, -140, 0.5, -215)
-mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+mainFrame.Position =
+    UDim2.new(0.5, -140, 0.5, -215)
+mainFrame.BackgroundColor3 =
+    Color3.fromRGB(15, 15, 20)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Visible = false
@@ -451,30 +559,41 @@ mainStroke.Parent = mainFrame
 --==================================================
 
 RunService.RenderStepped:Connect(function()
+
     if savedData.settings.rainbowOutline then
-        local rainbowColor = Color3.fromHSV(
-            (tick() % 5) / 5,
-            0.8,
-            1
-        )
+
+        local rainbowColor =
+            Color3.fromHSV(
+                (tick() % 5) / 5,
+                0.8,
+                1
+            )
 
         mainStroke.Color = rainbowColor
 
         for _, frame in pairs(shortcuts) do
-            local stroke = frame:FindFirstChildOfClass("UIStroke")
+
+            local stroke =
+                frame:FindFirstChildOfClass("UIStroke")
 
             if stroke then
                 stroke.Color = rainbowColor
             end
         end
+
     else
-        mainStroke.Color = Color3.fromRGB(255, 255, 255)
+
+        mainStroke.Color =
+            Color3.fromRGB(255, 255, 255)
 
         for _, frame in pairs(shortcuts) do
-            local stroke = frame:FindFirstChildOfClass("UIStroke")
+
+            local stroke =
+                frame:FindFirstChildOfClass("UIStroke")
 
             if stroke then
-                stroke.Color = Color3.fromRGB(255, 255, 255)
+                stroke.Color =
+                    Color3.fromRGB(255, 255, 255)
             end
         end
     end
@@ -490,7 +609,8 @@ local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0, 35)
 titleLabel.BackgroundTransparency = 1
 titleLabel.Text = "Emote Menu"
-titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 titleLabel.TextSize = 15
 titleLabel.Font = Enum.Font.GothamBold
 titleLabel.Parent = mainFrame
@@ -503,8 +623,10 @@ addTextStroke(titleLabel)
 
 local closeBtnFrame = Instance.new("Frame")
 closeBtnFrame.Size = UDim2.new(0, 26, 0, 26)
-closeBtnFrame.Position = UDim2.new(1, -33, 0, 5)
-closeBtnFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+closeBtnFrame.Position =
+    UDim2.new(1, -33, 0, 5)
+closeBtnFrame.BackgroundColor3 =
+    Color3.fromRGB(30, 30, 40)
 closeBtnFrame.Parent = mainFrame
 
 local closeCorner = Instance.new("UICorner")
@@ -512,7 +634,8 @@ closeCorner.CornerRadius = UDim.new(0, 6)
 closeCorner.Parent = closeBtnFrame
 
 local closeStroke = Instance.new("UIStroke")
-closeStroke.Color = Color3.fromRGB(60, 60, 80)
+closeStroke.Color =
+    Color3.fromRGB(60, 60, 80)
 closeStroke.Thickness = 1
 closeStroke.Parent = closeBtnFrame
 
@@ -520,7 +643,8 @@ local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(1, 0, 1, 0)
 closeBtn.BackgroundTransparency = 1
 closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
+closeBtn.TextColor3 =
+    Color3.fromRGB(255, 100, 100)
 closeBtn.TextSize = 13
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.Parent = closeBtnFrame
@@ -537,8 +661,10 @@ end)
 
 local settingsBtnFrame = Instance.new("Frame")
 settingsBtnFrame.Size = UDim2.new(0, 26, 0, 26)
-settingsBtnFrame.Position = UDim2.new(1, -65, 0, 5)
-settingsBtnFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+settingsBtnFrame.Position =
+    UDim2.new(1, -65, 0, 5)
+settingsBtnFrame.BackgroundColor3 =
+    Color3.fromRGB(30, 30, 40)
 settingsBtnFrame.Parent = mainFrame
 
 local settingsCorner = Instance.new("UICorner")
@@ -546,7 +672,8 @@ settingsCorner.CornerRadius = UDim.new(0, 6)
 settingsCorner.Parent = settingsBtnFrame
 
 local settingsStroke = Instance.new("UIStroke")
-settingsStroke.Color = Color3.fromRGB(60, 60, 80)
+settingsStroke.Color =
+    Color3.fromRGB(60, 60, 80)
 settingsStroke.Thickness = 1
 settingsStroke.Parent = settingsBtnFrame
 
@@ -554,7 +681,8 @@ local settingsBtn = Instance.new("TextButton")
 settingsBtn.Size = UDim2.new(1, 0, 1, 0)
 settingsBtn.BackgroundTransparency = 1
 settingsBtn.Text = "⚙"
-settingsBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
+settingsBtn.TextColor3 =
+    Color3.fromRGB(200, 200, 220)
 settingsBtn.TextSize = 14
 settingsBtn.Font = Enum.Font.GothamBold
 settingsBtn.Parent = settingsBtnFrame
@@ -566,19 +694,26 @@ addTextStroke(settingsBtn)
 --==================================================
 
 local emotesTab = Instance.new("Frame")
-emotesTab.Size = UDim2.new(1, 0, 1, -35)
-emotesTab.Position = UDim2.new(0, 0, 0, 35)
+emotesTab.Size =
+    UDim2.new(1, 0, 1, -35)
+emotesTab.Position =
+    UDim2.new(0, 0, 0, 35)
 emotesTab.BackgroundTransparency = 1
 emotesTab.Parent = mainFrame
 
 local searchBox = Instance.new("TextBox")
-searchBox.Size = UDim2.new(1, -20, 0, 32)
-searchBox.Position = UDim2.new(0, 10, 0, 3)
-searchBox.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
-searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+searchBox.Size =
+    UDim2.new(1, -20, 0, 32)
+searchBox.Position =
+    UDim2.new(0, 10, 0, 3)
+searchBox.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 30)
+searchBox.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 searchBox.Text = ""
 searchBox.PlaceholderText = "Search"
-searchBox.PlaceholderColor3 = Color3.fromRGB(130, 130, 150)
+searchBox.PlaceholderColor3 =
+    Color3.fromRGB(130, 130, 150)
 searchBox.TextSize = 13
 searchBox.Font = Enum.Font.Gotham
 searchBox.ClearTextOnFocus = false
@@ -591,31 +726,41 @@ searchCorner.CornerRadius = UDim.new(0, 8)
 searchCorner.Parent = searchBox
 
 local searchStroke = Instance.new("UIStroke")
-searchStroke.Color = Color3.fromRGB(45, 45, 60)
+searchStroke.Color =
+    Color3.fromRGB(45, 45, 60)
 searchStroke.Thickness = 1
 searchStroke.Parent = searchBox
 
 local scrollFrame = Instance.new("ScrollingFrame")
-scrollFrame.Size = UDim2.new(1, -12, 1, -43)
-scrollFrame.Position = UDim2.new(0, 6, 0, 40)
-scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollFrame.Size =
+    UDim2.new(1, -12, 1, -43)
+scrollFrame.Position =
+    UDim2.new(0, 6, 0, 40)
+scrollFrame.CanvasSize =
+    UDim2.new(0, 0, 0, 0)
 scrollFrame.ScrollBarThickness = 4
-scrollFrame.ScrollBarImageColor3 = Color3.fromRGB(70, 70, 90)
+scrollFrame.ScrollBarImageColor3 =
+    Color3.fromRGB(70, 70, 90)
 scrollFrame.BackgroundTransparency = 1
 scrollFrame.Parent = emotesTab
 
 local layout = Instance.new("UIListLayout")
 layout.Padding = UDim.new(0, 5)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.SortOrder =
+    Enum.SortOrder.LayoutOrder
 layout.Parent = scrollFrame
 
-layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-    scrollFrame.CanvasSize = UDim2.new(
-        0,
-        0,
-        0,
-        layout.AbsoluteContentSize.Y
-    )
+layout:GetPropertyChangedSignal(
+    "AbsoluteContentSize"
+):Connect(function()
+
+    scrollFrame.CanvasSize =
+        UDim2.new(
+            0,
+            0,
+            0,
+            layout.AbsoluteContentSize.Y
+        )
 end)
 
 --==================================================
@@ -623,16 +768,20 @@ end)
 --==================================================
 
 local settingsTab = Instance.new("Frame")
-settingsTab.Size = UDim2.new(1, 0, 1, -35)
-settingsTab.Position = UDim2.new(0, 0, 0, 35)
+settingsTab.Size =
+    UDim2.new(1, 0, 1, -35)
+settingsTab.Position =
+    UDim2.new(0, 0, 0, 35)
 settingsTab.BackgroundTransparency = 1
 settingsTab.Visible = false
 settingsTab.Parent = mainFrame
 
 local settingsLayout = Instance.new("UIListLayout")
 settingsLayout.Padding = UDim.new(0, 10)
-settingsLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-settingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+settingsLayout.HorizontalAlignment =
+    Enum.HorizontalAlignment.Center
+settingsLayout.SortOrder =
+    Enum.SortOrder.LayoutOrder
 settingsLayout.Parent = settingsTab
 
 local padding = Instance.new("UIPadding")
@@ -644,20 +793,25 @@ padding.Parent = settingsTab
 --==================================================
 
 local modeLabel = Instance.new("TextLabel")
-modeLabel.Size = UDim2.new(1, -30, 0, 18)
+modeLabel.Size =
+    UDim2.new(1, -30, 0, 18)
 modeLabel.BackgroundTransparency = 1
 modeLabel.Text = "Shortcut Display Mode:"
-modeLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+modeLabel.TextColor3 =
+    Color3.fromRGB(200, 200, 220)
 modeLabel.TextSize = 12
 modeLabel.Font = Enum.Font.GothamSemibold
-modeLabel.TextXAlignment = Enum.TextXAlignment.Left
+modeLabel.TextXAlignment =
+    Enum.TextXAlignment.Left
 modeLabel.Parent = settingsTab
 
 addTextStroke(modeLabel)
 
 local modeToggleBtnFrame = Instance.new("Frame")
-modeToggleBtnFrame.Size = UDim2.new(1, -30, 0, 32)
-modeToggleBtnFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+modeToggleBtnFrame.Size =
+    UDim2.new(1, -30, 0, 32)
+modeToggleBtnFrame.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 30)
 modeToggleBtnFrame.Parent = settingsTab
 
 local modeCorner = Instance.new("UICorner")
@@ -665,14 +819,17 @@ modeCorner.CornerRadius = UDim.new(0, 8)
 modeCorner.Parent = modeToggleBtnFrame
 
 local modeStroke = Instance.new("UIStroke")
-modeStroke.Color = Color3.fromRGB(45, 45, 60)
+modeStroke.Color =
+    Color3.fromRGB(45, 45, 60)
 modeStroke.Thickness = 1
 modeStroke.Parent = modeToggleBtnFrame
 
 local modeToggleBtn = Instance.new("TextButton")
-modeToggleBtn.Size = UDim2.new(1, 0, 1, 0)
+modeToggleBtn.Size =
+    UDim2.new(1, 0, 1, 0)
 modeToggleBtn.BackgroundTransparency = 1
-modeToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+modeToggleBtn.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 modeToggleBtn.TextSize = 13
 modeToggleBtn.Font = Enum.Font.GothamMedium
 modeToggleBtn.Parent = modeToggleBtnFrame
@@ -684,43 +841,56 @@ addTextStroke(modeToggleBtn)
 --==================================================
 
 local sizeLabel = Instance.new("TextLabel")
-sizeLabel.Size = UDim2.new(1, -30, 0, 18)
+sizeLabel.Size =
+    UDim2.new(1, -30, 0, 18)
 sizeLabel.BackgroundTransparency = 1
-sizeLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+sizeLabel.TextColor3 =
+    Color3.fromRGB(200, 200, 220)
 sizeLabel.TextSize = 12
 sizeLabel.Font = Enum.Font.GothamSemibold
-sizeLabel.TextXAlignment = Enum.TextXAlignment.Left
+sizeLabel.TextXAlignment =
+    Enum.TextXAlignment.Left
 sizeLabel.Parent = settingsTab
 
 addTextStroke(sizeLabel)
 
 local sizeContainer = Instance.new("Frame")
-sizeContainer.Size = UDim2.new(1, -30, 0, 32)
-sizeContainer.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+sizeContainer.Size =
+    UDim2.new(1, -30, 0, 32)
+sizeContainer.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 30)
 sizeContainer.Parent = settingsTab
 
 local sizeContainerCorner = Instance.new("UICorner")
-sizeContainerCorner.CornerRadius = UDim.new(0, 8)
-sizeContainerCorner.Parent = sizeContainer
+sizeContainerCorner.CornerRadius =
+    UDim.new(0, 8)
+sizeContainerCorner.Parent =
+    sizeContainer
 
 local sizeContainerStroke = Instance.new("UIStroke")
-sizeContainerStroke.Color = Color3.fromRGB(45, 45, 60)
+sizeContainerStroke.Color =
+    Color3.fromRGB(45, 45, 60)
 sizeContainerStroke.Thickness = 1
-sizeContainerStroke.Parent = sizeContainer
+sizeContainerStroke.Parent =
+    sizeContainer
 
 local sliderFill = Instance.new("Frame")
-sliderFill.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+sliderFill.BackgroundColor3 =
+    Color3.fromRGB(60, 60, 90)
 sliderFill.BorderSizePixel = 0
 sliderFill.Parent = sizeContainer
 
 local sliderFillCorner = Instance.new("UICorner")
-sliderFillCorner.CornerRadius = UDim.new(0, 8)
+sliderFillCorner.CornerRadius =
+    UDim.new(0, 8)
 sliderFillCorner.Parent = sliderFill
 
 local sizeSliderText = Instance.new("TextLabel")
-sizeSliderText.Size = UDim2.new(1, 0, 1, 0)
+sizeSliderText.Size =
+    UDim2.new(1, 0, 1, 0)
 sizeSliderText.BackgroundTransparency = 1
-sizeSliderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+sizeSliderText.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 sizeSliderText.TextSize = 13
 sizeSliderText.Font = Enum.Font.GothamMedium
 sizeSliderText.Parent = sizeContainer
@@ -732,43 +902,57 @@ addTextStroke(sizeSliderText)
 --==================================================
 
 local transLabel = Instance.new("TextLabel")
-transLabel.Size = UDim2.new(1, -30, 0, 18)
+transLabel.Size =
+    UDim2.new(1, -30, 0, 18)
 transLabel.BackgroundTransparency = 1
-transLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+transLabel.TextColor3 =
+    Color3.fromRGB(200, 200, 220)
 transLabel.TextSize = 12
 transLabel.Font = Enum.Font.GothamSemibold
-transLabel.TextXAlignment = Enum.TextXAlignment.Left
+transLabel.TextXAlignment =
+    Enum.TextXAlignment.Left
 transLabel.Parent = settingsTab
 
 addTextStroke(transLabel)
 
 local transContainer = Instance.new("Frame")
-transContainer.Size = UDim2.new(1, -30, 0, 32)
-transContainer.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+transContainer.Size =
+    UDim2.new(1, -30, 0, 32)
+transContainer.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 30)
 transContainer.Parent = settingsTab
 
 local transContainerCorner = Instance.new("UICorner")
-transContainerCorner.CornerRadius = UDim.new(0, 8)
-transContainerCorner.Parent = transContainer
+transContainerCorner.CornerRadius =
+    UDim.new(0, 8)
+transContainerCorner.Parent =
+    transContainer
 
 local transContainerStroke = Instance.new("UIStroke")
-transContainerStroke.Color = Color3.fromRGB(45, 45, 60)
+transContainerStroke.Color =
+    Color3.fromRGB(45, 45, 60)
 transContainerStroke.Thickness = 1
-transContainerStroke.Parent = transContainer
+transContainerStroke.Parent =
+    transContainer
 
 local transSliderFill = Instance.new("Frame")
-transSliderFill.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+transSliderFill.BackgroundColor3 =
+    Color3.fromRGB(60, 60, 90)
 transSliderFill.BorderSizePixel = 0
 transSliderFill.Parent = transContainer
 
 local transSliderFillCorner = Instance.new("UICorner")
-transSliderFillCorner.CornerRadius = UDim.new(0, 8)
-transSliderFillCorner.Parent = transSliderFill
+transSliderFillCorner.CornerRadius =
+    UDim.new(0, 8)
+transSliderFillCorner.Parent =
+    transSliderFill
 
 local transSliderText = Instance.new("TextLabel")
-transSliderText.Size = UDim2.new(1, 0, 1, 0)
+transSliderText.Size =
+    UDim2.new(1, 0, 1, 0)
 transSliderText.BackgroundTransparency = 1
-transSliderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+transSliderText.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 transSliderText.TextSize = 13
 transSliderText.Font = Enum.Font.GothamMedium
 transSliderText.Parent = transContainer
@@ -780,69 +964,157 @@ addTextStroke(transSliderText)
 --==================================================
 
 local rainbowLabel = Instance.new("TextLabel")
-rainbowLabel.Size = UDim2.new(1, -30, 0, 18)
+rainbowLabel.Size =
+    UDim2.new(1, -30, 0, 18)
 rainbowLabel.BackgroundTransparency = 1
 rainbowLabel.Text = "Rainbow Outline:"
-rainbowLabel.TextColor3 = Color3.fromRGB(200, 200, 220)
+rainbowLabel.TextColor3 =
+    Color3.fromRGB(200, 200, 220)
 rainbowLabel.TextSize = 12
 rainbowLabel.Font = Enum.Font.GothamSemibold
-rainbowLabel.TextXAlignment = Enum.TextXAlignment.Left
+rainbowLabel.TextXAlignment =
+    Enum.TextXAlignment.Left
 rainbowLabel.Parent = settingsTab
 
 addTextStroke(rainbowLabel)
 
 local rainbowToggleBtnFrame = Instance.new("Frame")
-rainbowToggleBtnFrame.Size = UDim2.new(1, -30, 0, 32)
-rainbowToggleBtnFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 30)
+rainbowToggleBtnFrame.Size =
+    UDim2.new(1, -30, 0, 32)
+rainbowToggleBtnFrame.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 30)
 rainbowToggleBtnFrame.Parent = settingsTab
 
 local rainbowCorner = Instance.new("UICorner")
-rainbowCorner.CornerRadius = UDim.new(0, 8)
-rainbowCorner.Parent = rainbowToggleBtnFrame
+rainbowCorner.CornerRadius =
+    UDim.new(0, 8)
+rainbowCorner.Parent =
+    rainbowToggleBtnFrame
 
 local rainbowStroke = Instance.new("UIStroke")
-rainbowStroke.Color = Color3.fromRGB(45, 45, 60)
+rainbowStroke.Color =
+    Color3.fromRGB(45, 45, 60)
 rainbowStroke.Thickness = 1
-rainbowStroke.Parent = rainbowToggleBtnFrame
+rainbowStroke.Parent =
+    rainbowToggleBtnFrame
 
 local rainbowToggleBtn = Instance.new("TextButton")
-rainbowToggleBtn.Size = UDim2.new(1, 0, 1, 0)
+rainbowToggleBtn.Size =
+    UDim2.new(1, 0, 1, 0)
 rainbowToggleBtn.BackgroundTransparency = 1
-rainbowToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+rainbowToggleBtn.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
 rainbowToggleBtn.TextSize = 13
-rainbowToggleBtn.Font = Enum.Font.GothamMedium
-rainbowToggleBtn.Parent = rainbowToggleBtnFrame
+rainbowToggleBtn.Font =
+    Enum.Font.GothamMedium
+rainbowToggleBtn.Parent =
+    rainbowToggleBtnFrame
 
 addTextStroke(rainbowToggleBtn)
+
+--==================================================
+-- LOCK EMOTE POSITIONS TOGGLE
+--==================================================
+
+local lockLabel = Instance.new("TextLabel")
+lockLabel.Size =
+    UDim2.new(1, -30, 0, 18)
+lockLabel.BackgroundTransparency = 1
+lockLabel.Text = "Lock Emotes Positions:"
+lockLabel.TextColor3 =
+    Color3.fromRGB(200, 200, 220)
+lockLabel.TextSize = 12
+lockLabel.Font =
+    Enum.Font.GothamSemibold
+lockLabel.TextXAlignment =
+    Enum.TextXAlignment.Left
+lockLabel.Parent = settingsTab
+
+addTextStroke(lockLabel)
+
+local lockToggleBtnFrame = Instance.new("Frame")
+lockToggleBtnFrame.Size =
+    UDim2.new(1, -30, 0, 32)
+lockToggleBtnFrame.BackgroundColor3 =
+    Color3.fromRGB(22, 22, 30)
+lockToggleBtnFrame.Parent = settingsTab
+
+local lockCorner = Instance.new("UICorner")
+lockCorner.CornerRadius =
+    UDim.new(0, 8)
+lockCorner.Parent =
+    lockToggleBtnFrame
+
+local lockStroke = Instance.new("UIStroke")
+lockStroke.Color =
+    Color3.fromRGB(45, 45, 60)
+lockStroke.Thickness = 1
+lockStroke.Parent =
+    lockToggleBtnFrame
+
+local lockToggleBtn = Instance.new("TextButton")
+lockToggleBtn.Size =
+    UDim2.new(1, 0, 1, 0)
+lockToggleBtn.BackgroundTransparency = 1
+lockToggleBtn.TextColor3 =
+    Color3.fromRGB(255, 255, 255)
+lockToggleBtn.TextSize = 13
+lockToggleBtn.Font =
+    Enum.Font.GothamMedium
+lockToggleBtn.Parent =
+    lockToggleBtnFrame
+
+addTextStroke(lockToggleBtn)
 
 --==================================================
 -- SETTINGS UPDATE FUNCTIONS
 --==================================================
 
 local function updateDisplayModeText()
+
     if savedData.settings.displayMode == "name" then
-        modeToggleBtn.Text = "Mode: Emote Name"
+
+        modeToggleBtn.Text =
+            "Mode: Emote Name"
+
     else
-        modeToggleBtn.Text = "Mode: Thumbnail"
+
+        modeToggleBtn.Text =
+            "Mode: Thumbnail"
     end
 end
 
 local function updateSizeTextAndFill()
-    local size = savedData.settings.size
 
-    sizeSliderText.Text = "Shortcut Size: " .. size .. "px"
+    local size =
+        savedData.settings.size
 
-    local alpha = math.clamp(
-        (size - 24) / (80 - 24),
-        0,
-        1
-    )
+    sizeSliderText.Text =
+        "Shortcut Size: " ..
+        size ..
+        "px"
 
-    sliderFill.Size = UDim2.new(alpha, 0, 1, 0)
+    local alpha =
+        math.clamp(
+            (size - 24) /
+            (80 - 24),
+            0,
+            1
+        )
+
+    sliderFill.Size =
+        UDim2.new(
+            alpha,
+            0,
+            1,
+            0
+        )
 end
 
 local function updateTransTextAndFill()
-    local trans = savedData.settings.shortcutTransparency
+
+    local trans =
+        savedData.settings.shortcutTransparency
 
     transSliderText.Text =
         "Transparency: " ..
@@ -850,14 +1122,39 @@ local function updateTransTextAndFill()
         "%"
 
     transSliderFill.Size =
-        UDim2.new(trans, 0, 1, 0)
+        UDim2.new(
+            trans,
+            0,
+            1,
+            0
+        )
 end
 
 local function updateRainbowText()
+
     if savedData.settings.rainbowOutline then
-        rainbowToggleBtn.Text = "Rainbow Outline: On"
+
+        rainbowToggleBtn.Text =
+            "Rainbow Outline: On"
+
     else
-        rainbowToggleBtn.Text = "Rainbow Outline: Off"
+
+        rainbowToggleBtn.Text =
+            "Rainbow Outline: Off"
+    end
+end
+
+local function updateLockText()
+
+    if savedData.settings.lockEmotePositions then
+
+        lockToggleBtn.Text =
+            "Lock Emotes Positions: On"
+
+    else
+
+        lockToggleBtn.Text =
+            "Lock Emotes Positions: Off"
     end
 end
 
@@ -865,37 +1162,56 @@ updateDisplayModeText()
 updateSizeTextAndFill()
 updateTransTextAndFill()
 updateRainbowText()
+updateLockText()
 
 --==================================================
 -- SHORTCUT APPEARANCE
 --==================================================
 
 local function applyShortcutAppearance(frame, emote)
-    local size = savedData.settings.size
+
+    local size =
+        savedData.settings.size
 
     frame.BackgroundTransparency =
         savedData.settings.shortcutTransparency
 
-    local textBtn = frame:FindFirstChild("ShortcutButton")
-    local thumbImg = frame:FindFirstChild("ShortcutThumb")
-
-    if savedData.settings.displayMode == "thumbnail" then
-
-        frame.Size = UDim2.new(
-            0,
-            size,
-            0,
-            size
+    local textBtn =
+        frame:FindFirstChild(
+            "ShortcutButton"
         )
+
+    local thumbImg =
+        frame:FindFirstChild(
+            "ShortcutThumb"
+        )
+
+    if savedData.settings.displayMode ==
+        "thumbnail" then
+
+        frame.Size =
+            UDim2.new(
+                0,
+                size,
+                0,
+                size
+            )
 
         if textBtn then
             textBtn.Text = ""
         end
 
         if not thumbImg then
-            thumbImg = Instance.new("ImageLabel")
-            thumbImg.Name = "ShortcutThumb"
-            thumbImg.Size = UDim2.new(1, 0, 1, 0)
+
+            thumbImg =
+                Instance.new("ImageLabel")
+
+            thumbImg.Name =
+                "ShortcutThumb"
+
+            thumbImg.Size =
+                UDim2.new(1, 0, 1, 0)
+
             thumbImg.BackgroundTransparency = 1
 
             thumbImg.Image =
@@ -905,33 +1221,46 @@ local function applyShortcutAppearance(frame, emote)
 
             thumbImg.Parent = frame
 
-            local imgCorner = Instance.new("UICorner")
-            imgCorner.CornerRadius = UDim.new(0, 8)
-            imgCorner.Parent = thumbImg
+            local imgCorner =
+                Instance.new("UICorner")
+
+            imgCorner.CornerRadius =
+                UDim.new(0, 8)
+
+            imgCorner.Parent =
+                thumbImg
+
         else
+
             thumbImg.Visible = true
         end
 
     else
 
-        local width = math.floor(size * 2.8)
+        local width =
+            math.floor(size * 2.8)
 
-        frame.Size = UDim2.new(
-            0,
-            width,
-            0,
-            size
-        )
+        frame.Size =
+            UDim2.new(
+                0,
+                width,
+                0,
+                size
+            )
 
         if textBtn then
+
             textBtn.TextSize =
                 math.clamp(
-                    math.floor(size * 0.35),
+                    math.floor(
+                        size * 0.35
+                    ),
                     9,
                     16
                 )
 
-            textBtn.Text = emote.name
+            textBtn.Text =
+                emote.name
         end
 
         if thumbImg then
@@ -945,15 +1274,25 @@ end
 --==================================================
 
 settingsBtn.Activated:Connect(function()
-    local isSettingsVisible = settingsTab.Visible
 
-    settingsTab.Visible = not isSettingsVisible
-    emotesTab.Visible = isSettingsVisible
+    local isSettingsVisible =
+        settingsTab.Visible
+
+    settingsTab.Visible =
+        not isSettingsVisible
+
+    emotesTab.Visible =
+        isSettingsVisible
 
     if isSettingsVisible then
-        titleLabel.Text = "Emote Menu"
+
+        titleLabel.Text =
+            "Emote Menu"
+
     else
-        titleLabel.Text = "Settings"
+
+        titleLabel.Text =
+            "Settings"
     end
 end)
 
@@ -962,18 +1301,32 @@ end)
 --==================================================
 
 modeToggleBtn.Activated:Connect(function()
-    if savedData.settings.displayMode == "name" then
-        savedData.settings.displayMode = "thumbnail"
+
+    if savedData.settings.displayMode ==
+        "name" then
+
+        savedData.settings.displayMode =
+            "thumbnail"
+
     else
-        savedData.settings.displayMode = "name"
+
+        savedData.settings.displayMode =
+            "name"
     end
 
     updateDisplayModeText()
 
     for id, frame in pairs(shortcuts) do
+
         for _, emote in ipairs(emotes) do
+
             if emote.id == id then
-                applyShortcutAppearance(frame, emote)
+
+                applyShortcutAppearance(
+                    frame,
+                    emote
+                )
+
                 break
             end
         end
@@ -987,10 +1340,36 @@ end)
 --==================================================
 
 rainbowToggleBtn.Activated:Connect(function()
+
     savedData.settings.rainbowOutline =
         not savedData.settings.rainbowOutline
 
     updateRainbowText()
+
+    saveSettings()
+end)
+
+--==================================================
+-- LOCK POSITIONS BUTTON
+--==================================================
+
+lockToggleBtn.Activated:Connect(function()
+
+    savedData.settings.lockEmotePositions =
+        not savedData.settings.lockEmotePositions
+
+    -- If locking while a shortcut is currently
+    -- being dragged, immediately cancel that drag.
+    if savedData.settings.lockEmotePositions then
+
+        activeShortcutDrag = nil
+        activeShortcutInput = nil
+
+        isMenuDraggingEnabled = true
+    end
+
+    updateLockText()
+
     saveSettings()
 end)
 
@@ -1001,34 +1380,50 @@ end)
 local activeSlider = nil
 
 sizeContainer.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+    or input.UserInputType ==
+        Enum.UserInputType.Touch then
 
         if not activeSlider then
+
             activeSlider = "size"
+
             isMenuDraggingEnabled = false
         end
     end
 end)
 
 transContainer.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+    or input.UserInputType ==
+        Enum.UserInputType.Touch then
 
         if not activeSlider then
+
             activeSlider = "trans"
+
             isMenuDraggingEnabled = false
         end
     end
 end)
 
 UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1
-    or input.UserInputType == Enum.UserInputType.Touch then
+
+    if input.UserInputType ==
+        Enum.UserInputType.MouseButton1
+    or input.UserInputType ==
+        Enum.UserInputType.Touch then
 
         if activeSlider then
+
             activeSlider = nil
+
             isMenuDraggingEnabled = true
+
             saveSettings()
         end
     end
@@ -1040,35 +1435,56 @@ UserInputService.InputChanged:Connect(function(input)
         return
     end
 
-    if input.UserInputType ~= Enum.UserInputType.MouseMovement
-    and input.UserInputType ~= Enum.UserInputType.Touch then
+    if input.UserInputType ~=
+        Enum.UserInputType.MouseMovement
+    and input.UserInputType ~=
+        Enum.UserInputType.Touch then
+
         return
     end
 
     if activeSlider == "size" then
 
-        local mousePos = input.Position.X
-        local absPos = sizeContainer.AbsolutePosition.X
-        local absSize = sizeContainer.AbsoluteSize.X
+        local mousePos =
+            input.Position.X
 
-        local alpha = math.clamp(
-            (mousePos - absPos) / absSize,
-            0,
-            1
-        )
+        local absPos =
+            sizeContainer.AbsolutePosition.X
 
-        local newSize = math.floor(
-            24 + alpha * (80 - 24)
-        )
+        local absSize =
+            sizeContainer.AbsoluteSize.X
 
-        savedData.settings.size = newSize
+        local alpha =
+            math.clamp(
+                (mousePos - absPos) /
+                absSize,
+                0,
+                1
+            )
+
+        local newSize =
+            math.floor(
+                24 +
+                alpha *
+                (80 - 24)
+            )
+
+        savedData.settings.size =
+            newSize
 
         updateSizeTextAndFill()
 
         for id, frame in pairs(shortcuts) do
+
             for _, emote in ipairs(emotes) do
+
                 if emote.id == id then
-                    applyShortcutAppearance(frame, emote)
+
+                    applyShortcutAppearance(
+                        frame,
+                        emote
+                    )
+
                     break
                 end
             end
@@ -1076,22 +1492,32 @@ UserInputService.InputChanged:Connect(function(input)
 
     elseif activeSlider == "trans" then
 
-        local mousePos = input.Position.X
-        local absPos = transContainer.AbsolutePosition.X
-        local absSize = transContainer.AbsoluteSize.X
+        local mousePos =
+            input.Position.X
 
-        local alpha = math.clamp(
-            (mousePos - absPos) / absSize,
-            0,
-            1
-        )
+        local absPos =
+            transContainer.AbsolutePosition.X
 
-        savedData.settings.shortcutTransparency = alpha
+        local absSize =
+            transContainer.AbsoluteSize.X
+
+        local alpha =
+            math.clamp(
+                (mousePos - absPos) /
+                absSize,
+                0,
+                1
+            )
+
+        savedData.settings.shortcutTransparency =
+            alpha
 
         updateTransTextAndFill()
 
         for _, frame in pairs(shortcuts) do
-            frame.BackgroundTransparency = alpha
+
+            frame.BackgroundTransparency =
+                alpha
         end
     end
 end)
@@ -1101,19 +1527,26 @@ end)
 --==================================================
 
 toggleBtn.Activated:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
+
+    mainFrame.Visible =
+        not mainFrame.Visible
 end)
 
 --==================================================
 -- CREATE SHORTCUT
 --==================================================
 
-local function toggleShortcut(emote, savedPos, saveToDisk)
+local function toggleShortcut(
+    emote,
+    savedPos,
+    saveToDisk
+)
 
     -- Remove existing shortcut
     if shortcuts[emote.id] then
 
         shortcuts[emote.id]:Destroy()
+
         shortcuts[emote.id] = nil
 
         if saveToDisk ~= false then
@@ -1124,23 +1557,32 @@ local function toggleShortcut(emote, savedPos, saveToDisk)
     end
 
     -- Shortcut frame
-    local shortcutFrame = Instance.new("Frame")
-    shortcutFrame.Name = "Shortcut_" .. tostring(emote.id)
+    local shortcutFrame =
+        Instance.new("Frame")
+
+    shortcutFrame.Name =
+        "Shortcut_" ..
+        tostring(emote.id)
 
     if savedPos then
-        shortcutFrame.Position = UDim2.new(
-            savedPos[1],
-            savedPos[2],
-            savedPos[3],
-            savedPos[4]
-        )
+
+        shortcutFrame.Position =
+            UDim2.new(
+                savedPos[1],
+                savedPos[2],
+                savedPos[3],
+                savedPos[4]
+            )
+
     else
-        shortcutFrame.Position = UDim2.new(
-            0,
-            140,
-            0,
-            20
-        )
+
+        shortcutFrame.Position =
+            UDim2.new(
+                0,
+                140,
+                0,
+                20
+            )
     end
 
     shortcutFrame.BackgroundColor3 =
@@ -1154,24 +1596,44 @@ local function toggleShortcut(emote, savedPos, saveToDisk)
     shortcutFrame.Parent = screenGui
 
     -- Corner
-    local scCorner = Instance.new("UICorner")
-    scCorner.CornerRadius = UDim.new(0, 8)
-    scCorner.Parent = shortcutFrame
+    local scCorner =
+        Instance.new("UICorner")
+
+    scCorner.CornerRadius =
+        UDim.new(0, 8)
+
+    scCorner.Parent =
+        shortcutFrame
 
     -- Outline
-    local scStroke = Instance.new("UIStroke")
+    local scStroke =
+        Instance.new("UIStroke")
+
     scStroke.Thickness = 1.5
-    scStroke.Parent = shortcutFrame
+    scStroke.Parent =
+        shortcutFrame
 
     -- Button
-    local shortcutBtn = Instance.new("TextButton")
-    shortcutBtn.Name = "ShortcutButton"
-    shortcutBtn.Size = UDim2.new(1, 0, 1, 0)
+    local shortcutBtn =
+        Instance.new("TextButton")
+
+    shortcutBtn.Name =
+        "ShortcutButton"
+
+    shortcutBtn.Size =
+        UDim2.new(1, 0, 1, 0)
+
     shortcutBtn.BackgroundTransparency = 1
-    shortcutBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    shortcutBtn.Font = Enum.Font.GothamMedium
+
+    shortcutBtn.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
+    shortcutBtn.Font =
+        Enum.Font.GothamMedium
+
     shortcutBtn.AutoButtonColor = false
-    shortcutBtn.Parent = shortcutFrame
+    shortcutBtn.Parent =
+        shortcutFrame
 
     addTextStroke(shortcutBtn)
 
@@ -1181,15 +1643,15 @@ local function toggleShortcut(emote, savedPos, saveToDisk)
         emote
     )
 
-    -- IMPORTANT:
-    -- Mobile/PC drag handler
+    -- Mobile / PC drag handler
     makeShortcutDraggable(
         shortcutFrame,
         shortcutBtn,
         emote
     )
 
-    shortcuts[emote.id] = shortcutFrame
+    shortcuts[emote.id] =
+        shortcutFrame
 
     if saveToDisk ~= false then
         saveSettings()
@@ -1202,22 +1664,41 @@ end
 
 for _, emote in ipairs(emotes) do
 
-    local container = Instance.new("Frame")
-    container.Size = UDim2.new(1, 0, 0, 44)
-    container.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+    local container =
+        Instance.new("Frame")
+
+    container.Size =
+        UDim2.new(1, 0, 0, 44)
+
+    container.BackgroundColor3 =
+        Color3.fromRGB(22, 22, 28)
+
     container.BorderSizePixel = 0
-    container.Parent = scrollFrame
+    container.Parent =
+        scrollFrame
 
-    containerFrames[emote.id] = container
+    containerFrames[emote.id] =
+        container
 
-    local containerCorner = Instance.new("UICorner")
-    containerCorner.CornerRadius = UDim.new(0, 8)
-    containerCorner.Parent = container
+    local containerCorner =
+        Instance.new("UICorner")
+
+    containerCorner.CornerRadius =
+        UDim.new(0, 8)
+
+    containerCorner.Parent =
+        container
 
     -- Thumbnail
-    local thumb = Instance.new("ImageLabel")
-    thumb.Size = UDim2.new(0, 36, 0, 36)
-    thumb.Position = UDim2.new(0, 4, 0, 4)
+    local thumb =
+        Instance.new("ImageLabel")
+
+    thumb.Size =
+        UDim2.new(0, 36, 0, 36)
+
+    thumb.Position =
+        UDim2.new(0, 4, 0, 4)
+
     thumb.BackgroundTransparency = 1
 
     thumb.Image =
@@ -1225,65 +1706,130 @@ for _, emote in ipairs(emotes) do
         emote.id ..
         "&w=150&h=150"
 
-    thumb.Parent = container
+    thumb.Parent =
+        container
 
-    local thumbCorner = Instance.new("UICorner")
-    thumbCorner.CornerRadius = UDim.new(0, 6)
-    thumbCorner.Parent = thumb
+    local thumbCorner =
+        Instance.new("UICorner")
+
+    thumbCorner.CornerRadius =
+        UDim.new(0, 6)
+
+    thumbCorner.Parent =
+        thumb
 
     -- Play button
-    local playBtnFrame = Instance.new("Frame")
-    playBtnFrame.Size = UDim2.new(1, -85, 1, 0)
-    playBtnFrame.Position = UDim2.new(0, 44, 0, 0)
+    local playBtnFrame =
+        Instance.new("Frame")
+
+    playBtnFrame.Size =
+        UDim2.new(1, -85, 1, 0)
+
+    playBtnFrame.Position =
+        UDim2.new(0, 44, 0, 0)
+
     playBtnFrame.BackgroundColor3 =
         Color3.fromRGB(30, 30, 40)
-    playBtnFrame.Parent = container
 
-    local playCorner = Instance.new("UICorner")
-    playCorner.CornerRadius = UDim.new(0, 6)
-    playCorner.Parent = playBtnFrame
+    playBtnFrame.Parent =
+        container
 
-    local playStroke = Instance.new("UIStroke")
-    playStroke.Color = Color3.fromRGB(60, 60, 85)
+    local playCorner =
+        Instance.new("UICorner")
+
+    playCorner.CornerRadius =
+        UDim.new(0, 6)
+
+    playCorner.Parent =
+        playBtnFrame
+
+    local playStroke =
+        Instance.new("UIStroke")
+
+    playStroke.Color =
+        Color3.fromRGB(60, 60, 85)
+
     playStroke.Thickness = 1.2
-    playStroke.Parent = playBtnFrame
+    playStroke.Parent =
+        playBtnFrame
 
-    local playBtn = Instance.new("TextButton")
-    playBtn.Size = UDim2.new(1, 0, 1, 0)
+    local playBtn =
+        Instance.new("TextButton")
+
+    playBtn.Size =
+        UDim2.new(1, 0, 1, 0)
+
     playBtn.BackgroundTransparency = 1
-    playBtn.Text = emote.name
-    playBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+    playBtn.Text =
+        emote.name
+
+    playBtn.TextColor3 =
+        Color3.fromRGB(255, 255, 255)
+
     playBtn.TextSize = 12
-    playBtn.Font = Enum.Font.GothamSemibold
-    playBtn.TextXAlignment = Enum.TextXAlignment.Center
-    playBtn.Parent = playBtnFrame
+
+    playBtn.Font =
+        Enum.Font.GothamSemibold
+
+    playBtn.TextXAlignment =
+        Enum.TextXAlignment.Center
+
+    playBtn.Parent =
+        playBtnFrame
 
     addTextStroke(playBtn)
 
     -- Shortcut add button
-    local shortcutBtnFrame = Instance.new("Frame")
-    shortcutBtnFrame.Size = UDim2.new(0, 32, 0, 32)
+    local shortcutBtnFrame =
+        Instance.new("Frame")
+
+    shortcutBtnFrame.Size =
+        UDim2.new(0, 32, 0, 32)
+
     shortcutBtnFrame.Position =
-        UDim2.new(1, -36, 0.5, -16)
+        UDim2.new(
+            1,
+            -36,
+            0.5,
+            -16
+        )
 
     shortcutBtnFrame.BackgroundColor3 =
         Color3.fromRGB(35, 35, 48)
 
-    shortcutBtnFrame.Parent = container
+    shortcutBtnFrame.Parent =
+        container
 
-    local scBtnCorner = Instance.new("UICorner")
-    scBtnCorner.CornerRadius = UDim.new(0, 6)
-    scBtnCorner.Parent = shortcutBtnFrame
+    local scBtnCorner =
+        Instance.new("UICorner")
 
-    local shortcutAddBtn = Instance.new("TextButton")
-    shortcutAddBtn.Size = UDim2.new(1, 0, 1, 0)
+    scBtnCorner.CornerRadius =
+        UDim.new(0, 6)
+
+    scBtnCorner.Parent =
+        shortcutBtnFrame
+
+    local shortcutAddBtn =
+        Instance.new("TextButton")
+
+    shortcutAddBtn.Size =
+        UDim2.new(1, 0, 1, 0)
+
     shortcutAddBtn.BackgroundTransparency = 1
+
     shortcutAddBtn.Text = "+"
+
     shortcutAddBtn.TextColor3 =
         Color3.fromRGB(255, 255, 255)
+
     shortcutAddBtn.TextSize = 14
-    shortcutAddBtn.Font = Enum.Font.GothamBold
-    shortcutAddBtn.Parent = shortcutBtnFrame
+
+    shortcutAddBtn.Font =
+        Enum.Font.GothamBold
+
+    shortcutAddBtn.Parent =
+        shortcutBtnFrame
 
     addTextStroke(shortcutAddBtn)
 
@@ -1294,6 +1840,7 @@ for _, emote in ipairs(emotes) do
 
     -- Add/remove shortcut
     shortcutAddBtn.Activated:Connect(function()
+
         toggleShortcut(
             emote,
             nil,
@@ -1306,19 +1853,27 @@ end
 -- SEARCH
 --==================================================
 
-searchBox:GetPropertyChangedSignal("Text"):Connect(function()
+searchBox:GetPropertyChangedSignal(
+    "Text"
+):Connect(function()
 
-    local query = string.lower(searchBox.Text)
+    local query =
+        string.lower(
+            searchBox.Text
+        )
 
     for _, emote in ipairs(emotes) do
 
-        local frame = containerFrames[emote.id]
+        local frame =
+            containerFrames[emote.id]
 
         if frame then
 
             if query == ""
             or string.find(
-                string.lower(emote.name),
+                string.lower(
+                    emote.name
+                ),
                 query,
                 1,
                 true
@@ -1327,6 +1882,7 @@ searchBox:GetPropertyChangedSignal("Text"):Connect(function()
                 frame.Visible = true
 
             else
+
                 frame.Visible = false
             end
         end
@@ -1339,9 +1895,12 @@ end)
 
 if savedData.shortcuts then
 
-    for idStr, posData in pairs(savedData.shortcuts) do
+    for idStr, posData in pairs(
+        savedData.shortcuts
+    ) do
 
-        local id = tonumber(idStr)
+        local id =
+            tonumber(idStr)
 
         if id then
 
