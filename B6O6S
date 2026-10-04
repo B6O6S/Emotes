@@ -99,7 +99,7 @@ local emotes = {
     {id = 91673024802264, name = "Cat dance"},
     {id = 103425984442966, name = "Take it"},
     {id = 88789316279851, name = "Lay on back"},
-    {id = 113863828896103, name = "Shake that thang"},
+    {id = 95579617353997, name = "Shake that thang"},
     {id = 93659771713494, name = "Blue shirt kid"},
     {id = 95325218641213, name = "Psycho teddy"},
     {id = 111743497143417, name = "Side lean"},
