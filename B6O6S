@@ -73,7 +73,7 @@ end)
 --==================================================
 
 local emotes = {
-    {id = 122624487269599, name = "Take The L"},
+    {id = 128881942124489, name = "Take The L"},
     {id = 82250025202656, name = "Can I Join?"},
     {id = 101675537943749, name = "Fright Funk"},
     {id = 89114994401113, name = "Rampage"},
@@ -111,7 +111,9 @@ local emotes = {
     {id = 95148707883309, name = "Im sorry"},
     {id = 118335095429529, name = "Head Scratch"},
     {id = 140184938717896, name = "Fall"},
-    {id = 115203580644128, name = "Punching"}
+    {id = 115203580644128, name = "Punching"},
+    {id = 105248382902194, name = "Party Rock"},
+    {id = 95385842020103, name = "Zero Two"}
 }
 
 --==================================================
