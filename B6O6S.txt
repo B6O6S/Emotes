@@ -130,9 +130,6 @@ local isMenuDraggingEnabled = true
 --==================================================
 -- GLOBAL SHORTCUT DRAG LOCK
 --==================================================
--- Only ONE shortcut can be dragged at a time.
--- This prevents another finger from taking over
--- while a shortcut is already being dragged.
 
 local activeShortcutDrag = nil
 local activeShortcutInput = nil
@@ -217,78 +214,47 @@ local function saveSettings()
 end
 
 --==================================================
--- GENERAL DRAG FUNCTION
+-- GENERAL DRAG FUNCTION (For Main Frame)
 --==================================================
 
-local function makeDraggable(gui, onDragEnded)
-
+local function makeDraggable(gui)
     local dragging = false
     local dragInput = nil
     local dragStart = nil
     local startPos = nil
 
     gui.InputBegan:Connect(function(input)
-
-        if not isMenuDraggingEnabled then
-            return
-        end
+        if not isMenuDraggingEnabled then return end
 
         if input.UserInputType == Enum.UserInputType.MouseButton1
         or input.UserInputType == Enum.UserInputType.Touch then
-
             dragging = true
             dragStart = input.Position
             startPos = gui.Position
-
-            input.Changed:Connect(function()
-
-                if input.UserInputState ==
-                    Enum.UserInputState.End then
-
-                    dragging = false
-
-                    if onDragEnded then
-                        onDragEnded()
-                    end
-                end
-            end)
-        end
-    end)
-
-    gui.InputChanged:Connect(function(input)
-
-        if input.UserInputType ==
-            Enum.UserInputType.MouseMovement
-        or input.UserInputType ==
-            Enum.UserInputType.Touch then
-
             dragInput = input
         end
     end)
 
     UserInputService.InputChanged:Connect(function(input)
+        if not dragging or input ~= dragInput then return end
 
-        if not dragging then
-            return
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
+            local delta = input.Position - dragStart
+            gui.Position = UDim2.new(
+                startPos.X.Scale,
+                startPos.X.Offset + delta.X,
+                startPos.Y.Scale,
+                startPos.Y.Offset + delta.Y
+            )
         end
+    end)
 
-        if not isMenuDraggingEnabled then
-            return
+    UserInputService.InputEnded:Connect(function(input)
+        if input == dragInput then
+            dragging = false
+            dragInput = nil
         end
-
-        if input ~= dragInput then
-            return
-        end
-
-        local delta =
-            input.Position - dragStart
-
-        gui.Position = UDim2.new(
-            startPos.X.Scale,
-            startPos.X.Offset + delta.X,
-            startPos.Y.Scale,
-            startPos.Y.Offset + delta.Y
-        )
     end)
 end
 
@@ -308,25 +274,19 @@ local function makeShortcutDraggable(frame, button, emote)
 
     local function beginDrag(input)
 
-        -- Position lock
         if savedData.settings.lockEmotePositions then
             return
         end
 
-        -- Only mouse click or touch
         if input.UserInputType ~= Enum.UserInputType.Touch
         and input.UserInputType ~= Enum.UserInputType.MouseButton1 then
             return
         end
 
-        -- IMPORTANT:
-        -- If ANY shortcut is already being dragged,
-        -- completely ignore this new finger/input.
         if activeShortcutDrag ~= nil then
             return
         end
 
-        -- Claim the global drag lock
         activeShortcutDrag = frame
         activeShortcutInput = input
 
@@ -345,8 +305,6 @@ local function makeShortcutDraggable(frame, button, emote)
             return
         end
 
-        -- Only the original finger/input may control
-        -- the shortcut.
         if input ~= activeShortcutInput then
             return
         end
@@ -382,7 +340,6 @@ local function makeShortcutDraggable(frame, button, emote)
             return
         end
 
-        -- Ignore another finger ending.
         if input ~= activeShortcutInput then
             return
         end
@@ -413,15 +370,12 @@ local function makeShortcutDraggable(frame, button, emote)
         beginDrag(input)
     end)
 
-    -- Track only the movement belonging to the
-    -- currently active drag.
     frame.InputChanged:Connect(function(input)
 
         if input.UserInputType == Enum.UserInputType.Touch
         or input.UserInputType == Enum.UserInputType.MouseMovement then
 
             if activeShortcutDrag == frame then
-                -- For touch, keep the original input.
                 if input.UserInputType ==
                     Enum.UserInputType.Touch then
 
@@ -439,7 +393,6 @@ local function makeShortcutDraggable(frame, button, emote)
         or input.UserInputType == Enum.UserInputType.MouseMovement then
 
             if activeShortcutDrag == frame then
-                -- Do not replace the active touch.
                 if input.UserInputType ==
                     Enum.UserInputType.Touch then
 
@@ -457,8 +410,6 @@ local function makeShortcutDraggable(frame, button, emote)
             return
         end
 
-        -- Only the finger/mouse input that started
-        -- this shortcut drag is allowed.
         if input ~= activeShortcutInput then
             return
         end
@@ -479,15 +430,11 @@ local function makeShortcutDraggable(frame, button, emote)
         end
     end)
 
-    -- Play emote only when it was a tap.
     button.Activated:Connect(function()
-
-        -- If it was dragged, don't play.
         if moved then
             return
         end
 
-        -- If positions are locked, normal tapping still works.
         playEmoteById(emote.id)
     end)
 end
@@ -502,49 +449,13 @@ screenGui.ResetOnSpawn = false
 screenGui.Parent = playerGui
 
 --==================================================
--- TOGGLE BUTTON
---==================================================
-
-local toggleBtnFrame = Instance.new("Frame")
-toggleBtnFrame.Size = UDim2.new(0, 110, 0, 38)
-toggleBtnFrame.Position = UDim2.new(0, 20, 0, 20)
-toggleBtnFrame.BackgroundColor3 =
-    Color3.fromRGB(22, 22, 28)
-toggleBtnFrame.Parent = screenGui
-
-local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 8)
-toggleCorner.Parent = toggleBtnFrame
-
-local toggleStroke = Instance.new("UIStroke")
-toggleStroke.Thickness = 1.5
-toggleStroke.Color = Color3.fromRGB(60, 60, 80)
-toggleStroke.Parent = toggleBtnFrame
-
-local toggleBtn = Instance.new("TextButton")
-toggleBtn.Size = UDim2.new(1, 0, 1, 0)
-toggleBtn.BackgroundTransparency = 1
-toggleBtn.Text = "Emotes"
-toggleBtn.TextColor3 =
-    Color3.fromRGB(255, 255, 255)
-toggleBtn.TextSize = 14
-toggleBtn.Font = Enum.Font.GothamBold
-toggleBtn.Parent = toggleBtnFrame
-
-addTextStroke(toggleBtn)
-
-makeDraggable(toggleBtnFrame, nil)
-
---==================================================
 -- MAIN FRAME
 --==================================================
 
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 280, 0, 430)
-mainFrame.Position =
-    UDim2.new(0.5, -140, 0.5, -215)
-mainFrame.BackgroundColor3 =
-    Color3.fromRGB(15, 15, 20)
+mainFrame.Position = UDim2.new(0.5, -140, 0.5, -215)
+mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
 mainFrame.BorderSizePixel = 0
 mainFrame.Active = true
 mainFrame.Visible = false
@@ -557,6 +468,86 @@ mainCorner.Parent = mainFrame
 local mainStroke = Instance.new("UIStroke")
 mainStroke.Thickness = 1.8
 mainStroke.Parent = mainFrame
+
+makeDraggable(mainFrame)
+
+--==================================================
+-- BRAND-NEW FLOATING TOGGLE BUTTON (DESIGND FOR DELTA)
+--==================================================
+
+local toggleBtn = Instance.new("TextButton")
+toggleBtn.Name = "NewToggleBtn"
+toggleBtn.Size = UDim2.new(0, 100, 0, 36)
+toggleBtn.Position = UDim2.new(0, 20, 0, 20)
+toggleBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+toggleBtn.Text = "Emotes"
+toggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleBtn.TextSize = 14
+toggleBtn.Font = Enum.Font.GothamBold
+toggleBtn.Active = true
+toggleBtn.AutoButtonColor = false
+toggleBtn.Parent = screenGui
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 8)
+toggleCorner.Parent = toggleBtn
+
+local toggleStroke = Instance.new("UIStroke")
+toggleStroke.Thickness = 1.5
+toggleStroke.Color = Color3.fromRGB(60, 60, 80)
+toggleStroke.Parent = toggleBtn
+
+addTextStroke(toggleBtn)
+
+-- Dedicated Drag & Tap Handler for Mobile/Delta
+local toggleDragging = false
+local toggleMoved = false
+local toggleStartPos = nil
+local toggleDragStart = nil
+local activeToggleInput = nil
+
+toggleBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        toggleDragging = true
+        toggleMoved = false
+        activeToggleInput = input
+        toggleDragStart = input.Position
+        toggleStartPos = toggleBtn.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if not toggleDragging or input ~= activeToggleInput then return end
+
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        local delta = input.Position - toggleDragStart
+
+        if math.abs(delta.X) > 6 or math.abs(delta.Y) > 6 then
+            toggleMoved = true
+        end
+
+        if toggleMoved then
+            toggleBtn.Position = UDim2.new(
+                toggleStartPos.X.Scale,
+                toggleStartPos.X.Offset + delta.X,
+                toggleStartPos.Y.Scale,
+                toggleStartPos.Y.Offset + delta.Y
+            )
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input == activeToggleInput then
+        toggleDragging = false
+        activeToggleInput = nil
+
+        -- If it wasn't dragged, toggle the menu
+        if not toggleMoved then
+            mainFrame.Visible = not mainFrame.Visible
+        end
+    end
+end)
 
 --==================================================
 -- RAINBOW OUTLINE
@@ -602,8 +593,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
-
-makeDraggable(mainFrame, nil)
 
 --==================================================
 -- TITLE
@@ -1362,8 +1351,6 @@ lockToggleBtn.Activated:Connect(function()
     savedData.settings.lockEmotePositions =
         not savedData.settings.lockEmotePositions
 
-    -- If locking while a shortcut is currently
-    -- being dragged, immediately cancel that drag.
     if savedData.settings.lockEmotePositions then
 
         activeShortcutDrag = nil
@@ -1518,22 +1505,12 @@ UserInputService.InputChanged:Connect(function(input)
 
         updateTransTextAndFill()
 
-        for _, frame in pairs(shortcuts) do
+        for id, frame in pairs(shortcuts) do
 
             frame.BackgroundTransparency =
                 alpha
         end
     end
-end)
-
---==================================================
--- TOGGLE MENU
---==================================================
-
-toggleBtn.Activated:Connect(function()
-
-    mainFrame.Visible =
-        not mainFrame.Visible
 end)
 
 --==================================================
@@ -1546,7 +1523,6 @@ local function toggleShortcut(
     saveToDisk
 )
 
-    -- Remove existing shortcut
     if shortcuts[emote.id] then
 
         shortcuts[emote.id]:Destroy()
@@ -1560,7 +1536,6 @@ local function toggleShortcut(
         return
     end
 
-    -- Shortcut frame
     local shortcutFrame =
         Instance.new("Frame")
 
@@ -1599,7 +1574,6 @@ local function toggleShortcut(
     shortcutFrame.Active = true
     shortcutFrame.Parent = screenGui
 
-    -- Corner
     local scCorner =
         Instance.new("UICorner")
 
@@ -1609,7 +1583,6 @@ local function toggleShortcut(
     scCorner.Parent =
         shortcutFrame
 
-    -- Outline
     local scStroke =
         Instance.new("UIStroke")
 
@@ -1617,7 +1590,6 @@ local function toggleShortcut(
     scStroke.Parent =
         shortcutFrame
 
-    -- Button
     local shortcutBtn =
         Instance.new("TextButton")
 
@@ -1641,13 +1613,11 @@ local function toggleShortcut(
 
     addTextStroke(shortcutBtn)
 
-    -- Apply appearance
     applyShortcutAppearance(
         shortcutFrame,
         emote
     )
 
-    -- Mobile / PC drag handler
     makeShortcutDraggable(
         shortcutFrame,
         shortcutBtn,
@@ -1693,7 +1663,6 @@ for _, emote in ipairs(emotes) do
     containerCorner.Parent =
         container
 
-    -- Thumbnail
     local thumb =
         Instance.new("ImageLabel")
 
@@ -1722,7 +1691,6 @@ for _, emote in ipairs(emotes) do
     thumbCorner.Parent =
         thumb
 
-    -- Play button
     local playBtnFrame =
         Instance.new("Frame")
 
@@ -1784,7 +1752,6 @@ for _, emote in ipairs(emotes) do
 
     addTextStroke(playBtn)
 
-    -- Shortcut add button
     local shortcutBtnFrame =
         Instance.new("Frame")
 
@@ -1837,12 +1804,10 @@ for _, emote in ipairs(emotes) do
 
     addTextStroke(shortcutAddBtn)
 
-    -- Play emote
     playBtn.Activated:Connect(function()
         playEmoteById(emote.id)
     end)
 
-    -- Add/remove shortcut
     shortcutAddBtn.Activated:Connect(function()
 
         toggleShortcut(
