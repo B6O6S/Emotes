@@ -113,9 +113,9 @@ local emotes = {
     {id = 140184938717896, name = "Fall"},
     {id = 115203580644128, name = "Punching"},
     {id = 105248382902194, name = "Party Rock"},
-    {id = 90034439780643, name = "Bouncy Shake"},
+    {id = 70882071756733, name = "Needy Planch"},
     {id = 95385842020103, name = "Zero Two"},
-    {id = 72939632950458, name = "King nas meme"}
+    {id = 117298421488287, name = "Bloodpop"}
 }
 
 --==================================================
