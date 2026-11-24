@@ -113,7 +113,7 @@ local emotes = {
     {id = 140184938717896, name = "Fall"},
     {id = 115203580644128, name = "Punching"},
     {id = 105248382902194, name = "Party Rock"},
-    {id = 70882071756733, name = "Needy Planch"},
+    {id = 123074959481668, name = "Needy Roll"},
     {id = 95385842020103, name = "Zero Two"},
     {id = 117298421488287, name = "Bloodpop"}
 }
